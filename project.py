@@ -1,3 +1,4 @@
+import sys 
 from rich import print 
 from rich.align import Align
 from rich.panel import Panel
@@ -6,7 +7,7 @@ from nba_api.stats.static import players
 
         
 def main():
-    season = input("Enter the season: ")
+    season = input("Enter the desired season (e.g '2016-17'): ")
     while True: 
         p1_name = input("Enter player one: ")
         result = get_player(p1_name)
@@ -42,7 +43,17 @@ def main():
     print("\n\nVS")
     display_stats(p2_full_name, p2_stats, season)
     comparison(p1_stats, p2_stats, p1_full_name, p2_full_name)
+    while True:
+        yes_or_no = input("Would you like to compare again? (y/n): ")
+        if yes_or_no.lower().strip() in ["yes", "y"]:
+            break 
+        elif yes_or_no.lower().strip() in ["no", "n"]:
+            print("Exiting...")
+            sys.exit()
+        else:
+            print("Invalid Input, please enter yes or no.")
 
+    main()
 
 def get_player(players_name):
     name = players.find_players_by_full_name(players_name)

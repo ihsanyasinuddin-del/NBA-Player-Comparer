@@ -22,9 +22,9 @@ def get_stats(player_id,season):
     season_row = season_data.iloc[0]
     stats = {
         "Points": season_row["PTS"],
-        "Three-point percentage": f"{season_row['FG3_PCT'] * 100:.1f}%",
-        "Field goal percentage": f"{season_row["FG_PCT"] * 100:.1f}%",
-        "Free-throw percentage": f"{season_row["FT_PCT"] * 100:.1f}%",
+        "Three-point percentage": season_row['FG3_PCT'] * 100,
+        "Field goal percentage": season_row["FG_PCT"] * 100,
+        "Free-throw percentage": season_row["FT_PCT"] * 100,
         "Rebounds": season_row["REB"],
         "Assists": season_row["AST"],
         "Steals": season_row["STL"],
@@ -99,19 +99,19 @@ def display_stats_and_compare(playeronestats, playertwostats, name1, name2,):
         else:
             if playeronestats[stat] > playertwostats[stat]:
                 with col1:
-                    st.metric(f"{stat} 🏆", f"{playeronestats[stat]}")
+                    st.metric(f"{stat} 🏆", f"{playeronestats[stat]:.1f}")
                 with col2:
-                    st.metric(f"{stat}", playertwostats[stat])
+                    st.metric(f"{stat}", f"{playertwostats[stat]:.1f}")
             elif playertwostats[stat] > playeronestats[stat]:
                 with col1:
-                    st.metric(f"{stat}", playeronestats[stat])
+                    st.metric(f"{stat}", f"{playeronestats[stat]:.1f}")
                 with col2:
-                    st.metric(f"{stat} 🏆", f"{playertwostats[stat]}")
+                    st.metric(f"{stat} 🏆", f"{playertwostats[stat]:.1f}")
             else:
                 with col1:
-                    st.metric(f"{stat}", playeronestats[stat])
+                    st.metric(f"{stat}", f"{playeronestats[stat]:.1f}")
                 with col2:
-                    st.metric(f"{stat}", playertwostats[stat])   
+                    st.metric(f"{stat}", f"{playertwostats[stat]:.1f}")   
 
 if player_two_stats is not None:
     if compare: 

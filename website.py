@@ -106,9 +106,13 @@ def display_stats_and_compare(playeronestats, playertwostats, name1, name2,):
                 with col2:
                     st.metric(f"{stat}", f"{playertwostats[stat]:.1f}")   
 
-if compare: 
-    col1, col2 = st.columns(2, border=True)
 
+def check_same(playerone, playertwo):
+    if playerone == playertwo:
+        st.error(f"Please enter two different players", icon="🪞")
+        return True  
+
+if compare: 
     first_package = get_player(player_one)
     if first_package is None:
         st.error(f"No results for {player_one} found", icon="❌", )
@@ -127,6 +131,8 @@ if compare:
                 if player_two_stats is None:
                     st.error(f"{player_two} did not play in that season!", icon="⏳")
                 else:
-                    display_stats_and_compare(player_one_stats, player_two_stats, player_one_name, player_two_name)
+                    if not check_same(player_one_id, player_two_id): 
+                        col1, col2 = st.columns(2, border=True)
+                        display_stats_and_compare(player_one_stats, player_two_stats, player_one_name, player_two_name)
 
 

@@ -94,43 +94,51 @@ def display_stats_and_compare(playeronestats, playertwostats, name1, name2,):
     with col2:
         st.markdown(f"## {name2}", text_alignment="center")
     for stat in playeronestats:
+        if stat in ["Three-point percentage", "Field goal percentage", "Free-throw percentage"]:
+            playeronestat = f"{playeronestats[stat]:.1f}%"
+            playertwostat = f"{playertwostats[stat]:.1f}%"
+        else:
+            playeronestat = f"{playeronestats[stat]:.1f}"
+            playertwostat = f"{playeronestats[stat]:.1f}"
         if stat == "Turnovers":
             if playeronestats[stat] > playertwostats[stat]:
                 player_two_count += 1
+
                 with col1:
-                    st.metric(f"{stat}", f"{playeronestats[stat]}")
+                    st.metric(f"{stat}", f"{playeronestat}")
                 with col2:
-                    st.metric(f"{stat} 🏆", f"{playertwostats[stat]}")
+                    st.metric(f"{stat} 🏆", f"{playertwostat}")
             elif playertwostats[stat] > playeronestats[stat]:
                 player_one_count += 1
                 with col1:
                     st.metric(f"{stat} 🏆", f"{playeronestats[stat]}")
                 with col2:
-                    st.metric(f"{stat}", f"{playertwostats[stat]}")
+                    st.metric(f"{stat}", f"{playertwostat}")
             else:
                 with col1:
-                    st.metric(f"{stat}:", f"{playeronestats[stat]}")
+                    st.metric(f"{stat}:", f"{playeronestat}")
                 with col2:
-                    st.metric(f"{stat}:", f"{playertwostats[stat]}")
+                    st.metric(f"{stat}:", f"{playertwostat}")
         else:
             if playeronestats[stat] > playertwostats[stat]:
                 player_one_count += 1
                 with col1:
-                    st.metric(f"{stat} 🏆", f"{playeronestats[stat]:.1f}")
+                    st.metric(f"{stat} 🏆", f"{playeronestat}")
                 with col2:
-                    st.metric(f"{stat}", f"{playertwostats[stat]:.1f}")
+                    st.metric(f"{stat}", f"{playertwostat}")
             elif playertwostats[stat] > playeronestats[stat]:
                 player_two_count += 1
                 with col1:
-                    st.metric(f"{stat}", f"{playeronestats[stat]:.1f}")
+                    st.metric(f"{stat}", f"{playeronestat}")
                 with col2:
-                    st.metric(f"{stat} 🏆", f"{playertwostats[stat]:.1f}")
+                    st.metric(f"{stat} 🏆", f"{playertwostat}")
             else:
                 with col1:
-                    st.metric(f"{stat}", f"{playeronestats[stat]:.1f}")
+                    st.metric(f"{stat}", f"{playeronestat}")
                 with col2:
-                    st.metric(f"{stat}", f"{playertwostats[stat]:.1f}")  
+                    st.metric(f"{stat}", f"{playertwostat}")  
     score(player_one_count, player_two_count, name1, name2)
+
 
 def check_same(playerone, playertwo):
     if playerone == playertwo:
@@ -158,6 +166,10 @@ if compare:
                 else:
                     if not check_same(player_one_id, player_two_id): 
                         col1, col2 = st.columns(2, border=True)
+                        with col1:
+                            st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_one_id}.png?imwidth=1040&imheight=760)")
+                        with col2:
+                            st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_two_id}.png?imwidth=1040&imheight=760)")
                         display_stats_and_compare(player_one_stats, player_two_stats, player_one_name, player_two_name)
 
 

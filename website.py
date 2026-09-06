@@ -1,6 +1,7 @@
 import streamlit as st 
 from nba_api.stats.static import players
 from nba_api.stats.endpoints import playercareerstats
+from nba_api.stats.endpoints import commonplayerinfo
 
 def get_player(players_name):
     name = players.find_players_by_full_name(players_name)
@@ -9,6 +10,15 @@ def get_player(players_name):
     player_id = name[0]["id"]
     full_name = name[0]["full_name"]
     return player_id, full_name 
+
+def get_basic_info(playerid):
+    info = commonplayerinfo.CommonPlayerInfo(playerid)
+    df = info.common_player_info.get_data_frame()
+    df2 = df.iloc[0]
+    height = df2["HEIGHT"]
+    team = df2["TEAM_NAME"]
+    position = df2["POSITION"]
+    return height, team, position
 
 def get_stats(player_id,season):
     output = playercareerstats.PlayerCareerStats(
@@ -86,20 +96,24 @@ def score(score_one, score_two, name1, name2):
 
 
 
-def display_stats_and_compare(playeronestats, playertwostats, name1, name2,):
+def display_stats_and_compare(playeronestats, playertwostats, name1, name2, id1, id2):
     player_one_count = 0
     player_two_count = 0 
+    height1, team1, position1 = get_basic_info(id1)
+    height2, team2, position2 = get_basic_info(id2)
     with col1:
         st.markdown(f"## {name1}", text_alignment="center")
+        st.markdown(f"##### Team: {team1} | Height: {height1} | Position: {position1}")
     with col2:
         st.markdown(f"## {name2}", text_alignment="center")
+        st.markdown(f"##### Team: {team2} | Height: {height2} | Position: {position2}")
     for stat in playeronestats:
         if stat in ["Three-point percentage", "Field goal percentage", "Free-throw percentage"]:
             playeronestat = f"{playeronestats[stat]:.1f}%"
             playertwostat = f"{playertwostats[stat]:.1f}%"
         else:
             playeronestat = f"{playeronestats[stat]:.1f}"
-            playertwostat = f"{playeronestats[stat]:.1f}"
+            playertwostat = f"{playertwostats[stat]:.1f}"
         if stat == "Turnovers":
             if playeronestats[stat] > playertwostats[stat]:
                 player_two_count += 1
@@ -170,6 +184,13 @@ if compare:
                             st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_one_id}.png?imwidth=1040&imheight=760)")
                         with col2:
                             st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_two_id}.png?imwidth=1040&imheight=760)")
-                        display_stats_and_compare(player_one_stats, player_two_stats, player_one_name, player_two_name)
+                        display_stats_and_compare(player_one_stats, 
+                                                  player_two_stats, 
+                                                  player_one_name, 
+                                                  player_two_name, 
+                                                  player_one_id, 
+                                                  player_two_id
+
+                                                  )
 
 

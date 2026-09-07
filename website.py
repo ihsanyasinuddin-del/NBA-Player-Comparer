@@ -54,10 +54,7 @@ def get_stats(player_id,season):
 
     # get last year's stats 
     previous_season = find_previous_year(season)
-    previous_output = playercareerstats.PlayerCareerStats(
-            per_mode36="PerGame",
-            player_id=player_id 
-            )
+    previous_output = output
     previous_player_data = (previous_output.season_totals_regular_season.get_data_frame())
     previous_season_data = (previous_player_data[previous_player_data["SEASON_ID"] == previous_season])
     if previous_season_data.empty:

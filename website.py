@@ -46,6 +46,7 @@ def get_stats(player_id,season):
 
 
 st.markdown("# NBA COMPARER :basketball:", text_alignment="center")
+st.markdown("##### Compare two NBA players across a season of your choosing.", text_alignment="center")
 
 
 #Get a list of all seasons
@@ -59,16 +60,17 @@ seasons = df["SEASON_ID"].tolist()
 
 selected_season = st.selectbox(f"Select the desired season:", 
 options=seasons,
-index=None
+index=None,
+key="season"
 )
 
 left, right = st.columns(2)
 with left:
-    player_one = st.text_input("Enter player one ")
+    player_one = st.text_input("Enter player one ", key="player_one")
 
 
 with right:
-    player_two = st.text_input("Enter player two ")
+    player_two = st.text_input("Enter player two ", key="player_two")
 
 
 compare = st.button("COMPARE", icon="⚖️", width="stretch")
@@ -189,4 +191,12 @@ if compare:
 
                                                   )
 
+def reset_inputs():
+    st.session_state["season"] = None
+    st.session_state["player_one"] = ""
+    st.session_state["player_two"] = ""
 
+
+left, middle, right = st.columns(3)
+with middle:
+    st.button("RESET", on_click=reset_inputs, icon="🔁", width="stretch")

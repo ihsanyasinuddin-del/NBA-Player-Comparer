@@ -12,7 +12,7 @@ def get_player(players_name):
     return player_id, full_name 
 
 def get_basic_info(playerid):
-    info = commonplayerinfo.CommonPlayerInfo(playerid)
+    info = commonplayerinfo.CommonPlayerInfo(player_id=playerid)
     df = info.common_player_info.get_data_frame()
     df2 = df.iloc[0]
     height = df2["HEIGHT"]
@@ -20,7 +20,16 @@ def get_basic_info(playerid):
     position = df2["POSITION"]
     return height, team, position
 
+# find the previous season to compare change in players stats, e.g convert "2019-20" to "2018-19"
+def find_previous_year(current_year):
+    one, two = current_year.split("-")
+    onenew = int(one) - 1
+    twonew = int(two) - 1
+    previous_year = (f"{onenew}-{twonew}")
+    return previous_year
+
 def get_stats(player_id,season):
+    # get this year's stats
     output = playercareerstats.PlayerCareerStats(
         per_mode36="PerGame",
         player_id=player_id 
@@ -28,7 +37,7 @@ def get_stats(player_id,season):
     player_data = (output.season_totals_regular_season.get_data_frame())
     season_data = (player_data[player_data["SEASON_ID"] == season])
     if season_data.empty:
-        return 
+        return None, None
     season_row = season_data.iloc[0]
     stats = {
         "Points": season_row["PTS"],
@@ -42,39 +51,31 @@ def get_stats(player_id,season):
         "Turnovers":  season_row["TOV"],
 
     }
-    return stats 
 
-
-st.markdown("# NBA COMPARER :basketball:", text_alignment="center")
-st.markdown("##### Compare two NBA players across a season of your choosing.", text_alignment="center")
-
-
-#Get a list of all seasons
-output = playercareerstats.PlayerCareerStats(
-        per_mode36="PerGame",
-        player_id=201939 
-        )
-
-df = output.season_totals_regular_season.get_data_frame()
-seasons = df["SEASON_ID"].tolist()
-
-selected_season = st.selectbox(f"Select the desired season:", 
-options=seasons,
-index=None,
-key="season"
-)
-
-left, right = st.columns(2)
-with left:
-    player_one = st.text_input("Enter player one ", key="player_one")
-
-
-with right:
-    player_two = st.text_input("Enter player two ", key="player_two")
-
-
-compare = st.button("COMPARE", icon="⚖️", width="stretch")
-
+    # get last year's stats 
+    previous_season = find_previous_year(season)
+    previous_output = playercareerstats.PlayerCareerStats(
+            per_mode36="PerGame",
+            player_id=player_id 
+            )
+    previous_player_data = (previous_output.season_totals_regular_season.get_data_frame())
+    previous_season_data = (previous_player_data[previous_player_data["SEASON_ID"] == previous_season])
+    if previous_season_data.empty:
+        return None, None
+    previous_season_row = previous_season_data.iloc[0]
+    previous_stats = {
+            "Points": previous_season_row["PTS"],
+            "Three-point percentage": previous_season_row['FG3_PCT'] * 100,
+            "Field goal percentage": previous_season_row["FG_PCT"] * 100,
+            "Free-throw percentage": previous_season_row["FT_PCT"] * 100,
+            "Rebounds": previous_season_row["REB"],
+            "Assists": previous_season_row["AST"],
+            "Steals": previous_season_row["STL"],
+            "Blocks": previous_season_row["BLK"],
+            "Turnovers":  previous_season_row["TOV"],
+    
+    }
+    return stats, previous_stats 
 
 def score(score_one, score_two, name1, name2):
     sleft, smid, sright = st.columns([2, 1, 2])
@@ -91,11 +92,9 @@ def score(score_one, score_two, name1, name2):
     with sright:
         st.markdown(f"### {name2}", text_alignment="center")
         st.markdown(f"# {score_two}", text_alignment="center")
-    
 
 
-
-def display_stats_and_compare(playeronestats, playertwostats, name1, name2, id1, id2):
+def display_stats_and_compare(playeronestats, playeroneprevious, playertwostats, playertwoprevious, name1, name2, id1, id2):
     player_one_count = 0
     player_two_count = 0 
     height1, team1, position1 = get_basic_info(id1)
@@ -106,6 +105,8 @@ def display_stats_and_compare(playeronestats, playertwostats, name1, name2, id1,
     with col2:
         st.markdown(f"## {name2}", text_alignment="center")
         st.markdown(f"###### Current team: {team2} | Height: {height2} | Position: {position2}", text_alignment="center")
+
+
     for stat in playeronestats:
         if stat in ["Three-point percentage", "Field goal percentage", "Free-throw percentage"]:
             playeronestat = f"{playeronestats[stat]:.1f}%"
@@ -113,42 +114,47 @@ def display_stats_and_compare(playeronestats, playertwostats, name1, name2, id1,
         else:
             playeronestat = f"{playeronestats[stat]:.1f}"
             playertwostat = f"{playertwostats[stat]:.1f}"
+
+        # separate logic for turnovers as higher number is worse 
         if stat == "Turnovers":
             if playeronestats[stat] > playertwostats[stat]:
                 player_two_count += 1
                 with col1:
-                    st.metric(f"{stat}", f"{playeronestat}")
+                    st.metric(f"{stat}", f"{playeronestat}", delta=f"{(playeronestats[stat] - playeroneprevious[stat]):.1f}", delta_color="inverse")
                 with col2:
-                    st.metric(f"{stat} 🏆", f"{playertwostat}")
+                    st.metric(f"{stat} 🏆", f"{playertwostat}", delta=f"{(playertwostats[stat] - playertwoprevious[stat]):.1f}", delta_color="inverse")
+
             elif playertwostats[stat] > playeronestats[stat]:
                 player_one_count += 1
                 with col1:
-                    st.metric(f"{stat} 🏆", f"{playeronestats[stat]}")
+                    st.metric(f"{stat} 🏆", f"{playeronestats[stat]}", delta=f"{(playeronestats[stat] - playeroneprevious[stat]):.1f}", delta_color="inverse")
                 with col2:
-                    st.metric(f"{stat}", f"{playertwostat}")
+                    st.metric(f"{stat}", f"{playertwostat}", delta=f"{(playertwostats[stat] - playertwoprevious[stat]):.1f}", delta_color="inverse")
+
             else:
                 with col1:
-                    st.metric(f"{stat} 🟰", f"{playeronestat}")
+                    st.metric(f"{stat} 🟰", f"{playeronestat}", delta=f"{(playeronestats[stat] - playeroneprevious[stat]):.1f}", delta_color="inverse")
                 with col2:
-                    st.metric(f"{stat} 🟰", f"{playertwostat}")
+                    st.metric(f"{stat} 🟰", f"{playertwostat}", delta=f"{(playertwostats[stat] - playertwoprevious[stat]):.1f}", delta_color="inverse")
+
         else:
             if playeronestats[stat] > playertwostats[stat]:
                 player_one_count += 1
                 with col1:
-                    st.metric(f"{stat} 🏆", f"{playeronestat}")
+                    st.metric(f"{stat} 🏆", f"{playeronestat}", delta=f"{(playeronestats[stat] - playeroneprevious[stat]):.1f}")
                 with col2:
-                    st.metric(f"{stat}", f"{playertwostat}")
+                    st.metric(f"{stat}", f"{playertwostat}", delta=f"{(playertwostats[stat] - playertwoprevious[stat]):.1f}")
             elif playertwostats[stat] > playeronestats[stat]:
                 player_two_count += 1
                 with col1:
-                    st.metric(f"{stat}", f"{playeronestat}")
+                    st.metric(f"{stat}", f"{playeronestat}", delta=f"{(playeronestats[stat] - playeroneprevious[stat]):.1f}")
                 with col2:
-                    st.metric(f"{stat} 🏆", f"{playertwostat}")
+                    st.metric(f"{stat} 🏆", f"{playertwostat}", delta=f"{(playertwostats[stat] - playertwoprevious[stat]):.1f}")
             else:
                 with col1:
-                    st.metric(f"{stat} 🟰", f"{playeronestat}")
+                    st.metric(f"{stat} 🟰", f"{playeronestat}", delta=f"{(playeronestats[stat] - playeroneprevious[stat]):.1f}")
                 with col2:
-                    st.metric(f"{stat} 🟰", f"{playertwostat}")  
+                    st.metric(f"{stat} 🟰", f"{playertwostat}", delta=f"{(playertwostats[stat] - playertwoprevious[stat]):.1f}")
     score(player_one_count, player_two_count, name1, name2)
 
 
@@ -157,13 +163,47 @@ def check_same(playerone, playertwo):
         st.error(f"Please enter two different players", icon="🪞")
         return True  
 
+def reset_inputs():
+    st.session_state["season"] = None
+    st.session_state["player_one"] = ""
+    st.session_state["player_two"] = ""
+
+
+st.markdown("# NBA COMPARER :basketball:", text_alignment="center")
+st.markdown("##### Compare two NBA players across a season of your choosing.", text_alignment="center")
+
+# get a list of all seasons
+output = playercareerstats.PlayerCareerStats(
+        per_mode36="PerGame",
+        player_id=201939 
+        )
+df = output.season_totals_regular_season.get_data_frame()
+seasons = df["SEASON_ID"].tolist()
+
+# display seasons in dropdown box
+selected_season = st.selectbox(f"Select the desired season:", 
+options=seasons,
+index=None,
+key="season"
+)
+
+left, right = st.columns(2)
+with left:
+    player_one = st.text_input("Enter player one ", key="player_one")
+
+with right:
+    player_two = st.text_input("Enter player two ", key="player_two")
+
+compare = st.button("COMPARE", icon="⚖️", width="stretch")
+
+
 if compare: 
     first_package = get_player(player_one)
     if first_package is None:
         st.error(f"No results for {player_one} found", icon="❌", )
     else:
         player_one_id, player_one_name = first_package
-        player_one_stats = get_stats(player_id=player_one_id, season=selected_season)
+        player_one_stats, player_one_previous_stats = get_stats(player_id=player_one_id, season=selected_season)
         if player_one_stats is None:
             st.error(f"{player_one} did not play in that season!", icon="⏳")
         else:
@@ -172,7 +212,7 @@ if compare:
                 st.error(f"No results for {player_two} found", icon="❌")
             else:
                 player_two_id, player_two_name = second_package
-                player_two_stats = get_stats(player_id=player_two_id, season=selected_season)
+                player_two_stats, player_two_previous_stats = get_stats(player_id=player_two_id, season=selected_season)
                 if player_two_stats is None:
                     st.error(f"{player_two} did not play in that season!", icon="⏳")
                 else:
@@ -183,18 +223,14 @@ if compare:
                         with col2:
                             st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_two_id}.png?imwidth=1040&imheight=760)")
                         display_stats_and_compare(player_one_stats, 
+                                                  player_one_previous_stats,
                                                   player_two_stats, 
+                                                  player_two_previous_stats,
                                                   player_one_name, 
                                                   player_two_name, 
                                                   player_one_id, 
-                                                  player_two_id
-
+                                                  player_two_id,
                                                   )
-
-def reset_inputs():
-    st.session_state["season"] = None
-    st.session_state["player_one"] = ""
-    st.session_state["player_two"] = ""
 
 
 left, middle, right = st.columns(3)

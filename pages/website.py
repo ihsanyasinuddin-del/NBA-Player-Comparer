@@ -3,6 +3,7 @@ from nba_api.stats.static import players
 from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.endpoints import commonplayerinfo
 
+@st.cache_data
 def get_player(players_name):
     name = players.find_players_by_full_name(players_name)
     if not name:
@@ -22,6 +23,7 @@ def get_basic_info(playerid):
 
 # find the previous season to compare change in players stats, e.g convert "2019-20" to "2018-19"
 
+@st.cache_data
 def find_previous_year(current_year):
     one, two = current_year.split("-")
     onenew = int(one) - 1

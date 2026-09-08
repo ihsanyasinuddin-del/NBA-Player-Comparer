@@ -21,6 +21,7 @@ def get_basic_info(playerid):
     return height, team, position
 
 # find the previous season to compare change in players stats, e.g convert "2019-20" to "2018-19"
+
 def find_previous_year(current_year):
     one, two = current_year.split("-")
     onenew = int(one) - 1
@@ -28,6 +29,7 @@ def find_previous_year(current_year):
     previous_year = (f"{onenew}-{twonew}")
     return previous_year
 
+@st.cache_data
 def get_stats(player_id,season):
     # get this year's stats
     output = playercareerstats.PlayerCareerStats(
@@ -165,6 +167,7 @@ def reset_inputs():
     st.session_state["player_one"] = ""
     st.session_state["player_two"] = ""
 
+ 
 
 st.markdown("# NBA COMPARER :basketball:", text_alignment="center")
 st.markdown("##### Compare two NBA players across a season of your choosing.", text_alignment="center")
@@ -187,9 +190,11 @@ key="season"
 left, right = st.columns(2)
 with left:
     player_one = st.text_input("Enter player one ", key="player_one")
+    st.session_state["chosen_name"] = player_one
 
 with right:
     player_two = st.text_input("Enter player two ", key="player_two")
+    st.session_state["chosen_name2"] = player_two
 
 compare = st.button("COMPARE", icon="⚖️", width="stretch")
 
@@ -200,18 +205,26 @@ if compare:
         st.error(f"No results for {player_one} found", icon="❌", )
     else:
         player_one_id, player_one_name = first_package
+        st.session_state["player_one_id"] = player_one_id
         player_one_stats, player_one_previous_stats = get_stats(player_id=player_one_id, season=selected_season)
         if player_one_stats is None:
-            st.error(f"{player_one} did not play in that season!", icon="⏳")
+            if selected_season is None:
+                st.error("Please enter a season!", icon="❌")
+            else:
+                st.error(f"{player_one} did not play in that season!", icon="⏳")
         else:
             second_package = get_player(player_two)
             if second_package is None:
                 st.error(f"No results for {player_two} found", icon="❌")
             else:
                 player_two_id, player_two_name = second_package
+                st.session_state["player_two_id"] = player_two_id
                 player_two_stats, player_two_previous_stats = get_stats(player_id=player_two_id, season=selected_season)
                 if player_two_stats is None:
-                    st.error(f"{player_two} did not play in that season!", icon="⏳")
+                    if selected_season is None:
+                        st.error("Please enter a season!", icon="❌")
+                    else:
+                        st.error(f"{player_two} did not play in that season!", icon="⏳")
                 else:
                     if not check_same(player_one_id, player_two_id): 
                         col1, col2 = st.columns(2, border=True)
@@ -228,8 +241,8 @@ if compare:
                                                   player_one_id, 
                                                   player_two_id,
                                                   )
-
-
+                        
+                    
 left, middle, right = st.columns(3)
 with middle:
     st.button("RESET", on_click=reset_inputs, icon="🔁", width="stretch")

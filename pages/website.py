@@ -168,6 +168,9 @@ def reset_inputs():
     st.session_state["season"] = None
     st.session_state["player_one"] = ""
     st.session_state["player_two"] = ""
+    st.session_state["player_one_id"] = None
+    st.session_state["player_two_id"] = None
+    st.session_state["comparison_done"] = False
 
  
 
@@ -182,67 +185,101 @@ output = playercareerstats.PlayerCareerStats(
 df = output.season_totals_regular_season.get_data_frame()
 seasons = df["SEASON_ID"].tolist()
 
+if "season" not in st.session_state:
+    st.session_state["season"] = st.session_state.get("the_season", "")
 # display seasons in dropdown box
 selected_season = st.selectbox(f"Select the desired season:", 
 options=seasons,
 index=None,
-key="season"
+key="season",
+placeholder=st.session_state["season"]
 )
+
+st.session_state["the_season"] = selected_season
 
 left, right = st.columns(2)
 with left:
-    player_one = st.text_input("Enter player one ", key="player_one")
-    st.session_state["chosen_name"] = player_one
+    if "player_one" not in st.session_state:
+        st.session_state["player_one"] = st.session_state.get("chosen_name", "")
+    player_one = st.text_input("Enter player one ", key="player_one").strip()
+
+# this must be done becuase key for the widget resets when on a new page
+st.session_state["chosen_name"] = player_one
 
 with right:
-    player_two = st.text_input("Enter player two ", key="player_two")
-    st.session_state["chosen_name2"] = player_two
+    if "player_two" not in st.session_state:
+        st.session_state["player_two"] = st.session_state.get("chosen_name2", "")
+    player_two = st.text_input("Enter player two ", key="player_two").strip()
+
+st.session_state["chosen_name2"] = player_two
 
 compare = st.button("COMPARE", icon="⚖️", width="stretch")
 
+if st.session_state.get("comparison_done"):
+    col1, col2 = st.columns(2, border=True)
+    with col1:
+        st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{st.session_state["player_one_id"]}.png?imwidth=1040&imheight=760)")
+    with col2:
+        st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{st.session_state["player_two_id"]}.png?imwidth=1040&imheight=760)")
+    display_stats_and_compare(
+        st.session_state["player_one_stats"],
+        st.session_state["player_one_previous"],
+        st.session_state["player_two_stats"],
+        st.session_state["player_two_previous"],
+        st.session_state["chosen_name"],
+        st.session_state["chosen_name2"],
+        st.session_state["player_one_id"],
+        st.session_state["player_two_id"],
+    )
 
-if compare: 
-    first_package = get_player(player_one)
-    if first_package is None:
-        st.error(f"No results for {player_one} found", icon="❌", )
-    else:
-        player_one_id, player_one_name = first_package
-        st.session_state["player_one_id"] = player_one_id
-        player_one_stats, player_one_previous_stats = get_stats(player_id=player_one_id, season=selected_season)
-        if player_one_stats is None:
-            if selected_season is None:
-                st.error("Please enter a season!", icon="❌")
-            else:
-                st.error(f"{player_one} did not play in that season!", icon="⏳")
+if not st.session_state["comparison_done"]:
+    if compare: 
+        first_package = get_player(player_one)
+        if first_package is None:
+            st.error(f"No results for {player_one} found", icon="❌", )
         else:
-            second_package = get_player(player_two)
-            if second_package is None:
-                st.error(f"No results for {player_two} found", icon="❌")
-            else:
-                player_two_id, player_two_name = second_package
-                st.session_state["player_two_id"] = player_two_id
-                player_two_stats, player_two_previous_stats = get_stats(player_id=player_two_id, season=selected_season)
-                if player_two_stats is None:
-                    if selected_season is None:
-                        st.error("Please enter a season!", icon="❌")
-                    else:
-                        st.error(f"{player_two} did not play in that season!", icon="⏳")
+            player_one_id, player_one_name = first_package
+            st.session_state["player_one_id"] = player_one_id
+            player_one_stats, player_one_previous_stats = get_stats(player_id=player_one_id, season=selected_season)
+            st.session_state["player_one_stats"] = player_one_stats
+            st.session_state["player_one_previous"] = player_one_previous_stats
+            if player_one_stats is None:
+                if selected_season is None:
+                    st.error("Please enter a season!", icon="❌")
                 else:
-                    if not check_same(player_one_id, player_two_id): 
-                        col1, col2 = st.columns(2, border=True)
-                        with col1:
-                            st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_one_id}.png?imwidth=1040&imheight=760)")
-                        with col2:
-                            st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_two_id}.png?imwidth=1040&imheight=760)")
-                        display_stats_and_compare(player_one_stats, 
-                                                  player_one_previous_stats,
-                                                  player_two_stats, 
-                                                  player_two_previous_stats,
-                                                  player_one_name, 
-                                                  player_two_name, 
-                                                  player_one_id, 
-                                                  player_two_id,
-                                                  )
+                    st.error(f"{player_one} did not play in that season!", icon="⏳")
+            else:
+                second_package = get_player(player_two)
+                if second_package is None:
+                    st.error(f"No results for {player_two} found", icon="❌")
+                else:
+                    player_two_id, player_two_name = second_package
+                    st.session_state["player_two_id"] = player_two_id
+                    player_two_stats, player_two_previous_stats = get_stats(player_id=player_two_id, season=selected_season)
+                    st.session_state["player_two_stats"] = player_two_stats
+                    st.session_state["player_two_previous"] = player_two_previous_stats
+                    if player_two_stats is None:
+                        if selected_season is None:
+                            st.error("Please enter a season!", icon="❌")
+                        else:
+                            st.error(f"{player_two} did not play in that season!", icon="⏳")
+                    else:
+                        if not check_same(player_one_id, player_two_id): 
+                            st.session_state["comparison_done"] = True 
+                            col1, col2 = st.columns(2, border=True)
+                            with col1:
+                                st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_one_id}.png?imwidth=1040&imheight=760)")
+                            with col2:
+                                st.image(f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_two_id}.png?imwidth=1040&imheight=760)")
+                            display_stats_and_compare(player_one_stats, 
+                                                    player_one_previous_stats,
+                                                    player_two_stats, 
+                                                    player_two_previous_stats,
+                                                    player_one_name, 
+                                                    player_two_name, 
+                                                    player_one_id, 
+                                                    player_two_id,
+                                                    )
                         
                     
 left, middle, right = st.columns(3)

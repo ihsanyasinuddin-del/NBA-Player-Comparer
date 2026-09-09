@@ -17,6 +17,7 @@ if st.session_state.get("player_one_id"):
         combined_points = pd.merge(points1, points2, on="SEASON_ID")
         combined_points = combined_points.rename(columns={"PTS_x" : f"{name_one}", "PTS_y" : f"{name_two}"})
         st.line_chart(data=combined_points, x="SEASON_ID", y=[f"{name_one}", f"{name_two}"], x_label="Season", y_label="Points Per Game", color=["red", "green"])
+        st.write(st.session_state)
     else:
         st.write("Input two players on the homepage to see more stats!")
 else:

@@ -215,6 +215,9 @@ st.session_state["chosen_name2"] = player_two
 
 compare = st.button("COMPARE", icon="⚖️", width="stretch")
 
+if "comparison_done" not in st.session_state:
+    st.session_state["comparison_done"] = False
+
 if st.session_state.get("comparison_done"):
     col1, col2 = st.columns(2, border=True)
     with col1:

@@ -3,6 +3,9 @@ from nba_api.stats.static import players
 from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.endpoints import commonplayerinfo
 
+st.set_page_config(layout="centered")
+
+
 @st.cache_data
 def get_player(players_name):
     name = players.find_players_by_full_name(players_name)
@@ -12,6 +15,7 @@ def get_player(players_name):
     full_name = name[0]["full_name"]
     return player_id, full_name 
 
+@st.cache_data
 def get_basic_info(playerid):
     info = commonplayerinfo.CommonPlayerInfo(player_id=playerid)
     df = info.common_player_info.get_data_frame()
@@ -81,7 +85,10 @@ def get_stats(player_id,season):
 def score(score_one, score_two, name1, name2):
     sleft, smid, sright = st.columns([2, 1, 2])
     with sleft:
-        st.markdown(f"### {name1}", text_alignment="center")
+        if score_one > score_two:
+            st.markdown(f"### {name1} 👑", text_alignment="center")
+        else:
+            st.markdown(f"### {name1}", text_alignment="center")
         st.markdown(f"# {score_one}", text_alignment="center")
     with smid:
         st.write("")
@@ -91,7 +98,10 @@ def score(score_one, score_two, name1, name2):
         st.markdown("# --", text_alignment="center")
 
     with sright:
-        st.markdown(f"### {name2}", text_alignment="center")
+        if score_two > score_one:
+            st.markdown(f"### {name2} 👑", text_alignment="center")
+        else:
+            st.markdown(f"### {name2}", text_alignment="center")
         st.markdown(f"# {score_two}", text_alignment="center")
 
 

@@ -8,9 +8,12 @@ import plotly.graph_objects as go
 
 st.set_page_config(layout="wide")
 
-def make_line_graph(id1, id2, desired_stat, title):
-    career1 = playercareerstats.PlayerCareerStats(player_id=id1, per_mode36="PerGame")
-    career2 = playercareerstats.PlayerCareerStats(player_id=id2, per_mode36="PerGame")
+def request_stats(id):
+    career = playercareerstats.PlayerCareerStats(player_id=id, per_mode36="PerGame")
+    return career 
+
+
+def make_line_graph(career1, career2, desired_stat, title):
     df1 = career1.season_totals_regular_season.get_data_frame()
     df2 = career2.season_totals_regular_season.get_data_frame()
     points1 = df1[[f"{desired_stat}", "SEASON_ID"]]
@@ -23,20 +26,26 @@ def make_line_graph(id1, id2, desired_stat, title):
     st.markdown(f"### {title}" , text_alignment="center" )
     st.line_chart(data=combined_points, x="SEASON_ID", y=[f"{name_one}", f"{name_two}"], x_label="Season", y_label=f"{title}", color=["red", "green"])
 
-season = st.session_state["the_season"]
-df = leaguedashplayerstats.LeagueDashPlayerStats(
+if st.session_state.get("the_season"): 
+    season = st.session_state["the_season"]
+    df = leaguedashplayerstats.LeagueDashPlayerStats(
     season=season,
     per_mode_detailed="PerGame"
     ).get_data_frames()[0]
 
-def find_percentile(id, desired_stat):
+def find_percentile(id, desired_stat, name):
     qualifier = df["GP"] * df["MIN"]
     qualified_df = df[qualifier > 1500]
     length = len(qualified_df)
     n = 0 
-    points1 = qualified_df.query(f"PLAYER_ID == {id}")[f"{desired_stat}"].iloc[0]
+    points1 = qualified_df.query(f"PLAYER_ID == {id}")[f"{desired_stat}"]
+    if points1.empty:
+            st.write(f"{name} has not played enough minutes to be displayed on the radar chart.")
+            worked = False
+            return worked
+    points = points1.iloc[0]
     for x in qualified_df[f"{desired_stat}"]:
-        if x < points1:
+        if x < points:
             n += 1
     percentile = (n / length) * 100
     return percentile
@@ -50,46 +59,58 @@ if st.session_state.get("player_one_id"):
         season = st.session_state["the_season"]
         left, right = st.columns([0.5, 0.5])
         with left:
-            make_line_graph(player_one_id, player_two_id, desired_stat="PTS", title="Points Per Game")
-            make_line_graph(player_one_id, player_two_id, desired_stat="AST", title="Assists")
-            make_line_graph(player_one_id, player_two_id, desired_stat="FG_PCT", title="Field Goal Percentage")
-            make_line_graph(player_one_id, player_two_id, desired_stat="FG3_PCT", title="Three-point percentage")
-            make_line_graph(player_one_id, player_two_id, desired_stat="REB", title="Rebounds")
+            career1 = request_stats(player_one_id)
+            career2 = request_stats(player_two_id)
+            make_line_graph(career1, career2, desired_stat="PTS", title="Points Per Game")
+            make_line_graph(career1, career2, desired_stat="AST", title="Assists")
+            make_line_graph(career1, career2, desired_stat="FG_PCT", title="Field Goal Percentage")
+            make_line_graph(career1, career2, desired_stat="FG3_PCT", title="Three-point percentage")
+            make_line_graph(career1, career2, desired_stat="REB", title="Rebounds")
         with right:
-            points_percentile_one = find_percentile(player_one_id, "PTS")
-            ast_percentile_one = find_percentile(player_one_id, "AST")
-            three_point_percentile_one = find_percentile(player_one_id, "FG3_PCT")
-            rebounds_percentile_one = find_percentile(player_one_id, "REB")
-            steal_percentile_one = find_percentile(player_one_id, "STL")
-            blocks_percentile_one = find_percentile(player_one_id, "BLK")
+            points_percentile_one = find_percentile(player_one_id, "PTS", name_one)
+            if not points_percentile_one:
+                one_check = False
+            else:
+                ast_percentile_one = find_percentile(player_one_id, "AST", name_one)
+                three_point_percentile_one = find_percentile(player_one_id, "FG3_PCT", name_one)
+                rebounds_percentile_one = find_percentile(player_one_id, "REB", name_one)
+                steal_percentile_one = find_percentile(player_one_id, "STL", name_one)
+                blocks_percentile_one = find_percentile(player_one_id, "BLK", name_one)
+                one_check = True 
 
-            points_percentile_two = find_percentile(player_two_id, "PTS")
-            ast_percentile_two = find_percentile(player_two_id, "AST")
-            three_point_percentile_two = find_percentile(player_two_id, "FG3_PCT")
-            rebounds_percentile_two = find_percentile(player_two_id, "REB")
-            steal_percentile_two = find_percentile(player_two_id, "STL")
-            blocks_percentile_two = find_percentile(player_two_id, "BLK")
+            points_percentile_two = find_percentile(player_two_id, "PTS", name_two)
+            if not points_percentile_two:
+                two_check = False
+            else:
+                ast_percentile_two = find_percentile(player_two_id, "AST", name_two)
+                three_point_percentile_two = find_percentile(player_two_id, "FG3_PCT", name_two)
+                rebounds_percentile_two = find_percentile(player_two_id, "REB", name_two)
+                steal_percentile_two = find_percentile(player_two_id, "STL", name_two)
+                blocks_percentile_two = find_percentile(player_two_id, "BLK", name_two)
+                two_check = True 
 
-
-            categories = ["points", "assists", "3pt%", "rebounds", "steals", "blocks"]
+            st.markdown("#### Radar Chart Player Comparison", text_alignment="center")
+            categories = ["Scoring", "Playmaking", "Shooting", "Rebounds", "Steals", "Rim Protection"]
             fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(
-                r=[
-                    points_percentile_one,
-                    ast_percentile_one,
-                    three_point_percentile_one,
-                    rebounds_percentile_one,
-                    steal_percentile_one,
-                    blocks_percentile_one
+            if one_check:
+                fig.add_trace(go.Scatterpolar(
+                    r=[
+                        points_percentile_one,
+                        ast_percentile_one,
+                        three_point_percentile_one,
+                        rebounds_percentile_one,
+                        steal_percentile_one,
+                        blocks_percentile_one
+
+                    ],
+                    theta=categories,
+                    name=f"{name_one}",
+                    fill="toself",
 
 
-
-                ],
-                fill="toself",
-                name=f"{name_one}"
-
-                ))  
-            fig.add_trace(go.Scatterpolar(
+                    ))  
+            if two_check:
+                fig.add_trace(go.Scatterpolar(
                     r=[
                         points_percentile_two,
                         ast_percentile_two,
@@ -98,22 +119,27 @@ if st.session_state.get("player_one_id"):
                         steal_percentile_two,
                         blocks_percentile_two
 
-                    ],
-                    fill="toself",
-                    name=f"{name_two}"      
+                        ],
+                        theta=categories,
+                        name=f"{name_two}",
+                        fill="toself",
+                        
+                              
 
 
-                        ))
+                    ))
             fig.update_layout(
+                template="plotly_dark",
                 polar=dict(
                     radialaxis=dict(
                         visible=True,
                         range=[0,100],
-                        tickvals=[20,40,60,80,100]
+                        tickvals=[20,40,60,80,100],
+                        
                     )
                 )
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, )
 
     else:
         st.write("Input two players on the homepage to see more stats!")

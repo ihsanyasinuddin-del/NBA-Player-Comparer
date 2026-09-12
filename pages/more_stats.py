@@ -173,7 +173,7 @@ if st.session_state.get("player_one_id"):
             x1 = variable_names[x]
             y1 = variable_names[y]
             if x1 != y1:
-                make_scatter_chart(career1, x1, y1, "red")
+                make_scatter_chart(career1, x1, y1)
             else:
                 st.error("Please enter two different statistics to compare.")
 
@@ -182,7 +182,7 @@ if st.session_state.get("player_one_id"):
             x2 = variable_names[x_2]
             y2 = variable_names[y_2]
             if x2 != y2:
-                make_scatter_chart(career2, x2, y2, "green")
+                make_scatter_chart(career2, x2, y2)
             else:
                 st.error("Please enter two different statistics to compare.")
             

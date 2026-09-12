@@ -5,7 +5,6 @@ from nba_api.stats.endpoints import commonplayerinfo
 
 st.set_page_config(layout="centered")
 
-
 @st.cache_data
 def get_player(players_name):
     name = players.find_players_by_full_name(players_name)
@@ -19,10 +18,9 @@ def get_player(players_name):
 def get_basic_info(playerid):
     info = commonplayerinfo.CommonPlayerInfo(player_id=playerid)
     df = info.common_player_info.get_data_frame()
-    df2 = df.iloc[0]
-    height = df2["HEIGHT"]
-    team = df2["TEAM_NAME"]
-    position = df2["POSITION"]
+    height = df["HEIGHT"].iloc[0]
+    team = df["TEAM_NAME"].iloc[0]
+    position = df["POSITION"].iloc[0]
     return height, team, position
 
 # find the previous season to compare change in players stats, e.g convert "2019-20" to "2018-19"
@@ -45,7 +43,7 @@ def get_stats(player_id,season):
     player_data = (output.season_totals_regular_season.get_data_frame())
     season_data = (player_data[player_data["SEASON_ID"] == season])
     if season_data.empty:
-        return None, None
+        return None
     season_row = season_data.iloc[0]
     stats = {
         "Points": season_row["PTS"],
@@ -66,7 +64,7 @@ def get_stats(player_id,season):
     previous_player_data = (previous_output.season_totals_regular_season.get_data_frame())
     previous_season_data = (previous_player_data[previous_player_data["SEASON_ID"] == previous_season])
     if previous_season_data.empty:
-        return None, None
+        return None
     previous_season_row = previous_season_data.iloc[0]
     previous_stats = {
             "Points": previous_season_row["PTS"],
@@ -83,21 +81,22 @@ def get_stats(player_id,season):
     return stats, previous_stats 
 
 def score(score_one, score_two, name1, name2):
-    sleft, smid, sright = st.columns([2, 1, 2])
-    with sleft:
+    left, mid, right = st.columns([2, 1, 2])
+    with left:
         if score_one > score_two:
             st.markdown(f"### {name1} 👑", text_alignment="center")
         else:
             st.markdown(f"### {name1}", text_alignment="center")
         st.markdown(f"# {score_one}", text_alignment="center")
-    with smid:
+
+    with mid:
         st.write("")
         st.write("")
         st.write("")
         st.write("")
         st.markdown("# --", text_alignment="center")
 
-    with sright:
+    with right:
         if score_two > score_one:
             st.markdown(f"### {name2} 👑", text_alignment="center")
         else:
@@ -169,8 +168,8 @@ def display_stats_and_compare(playeronestats, playeroneprevious, playertwostats,
     score(player_one_count, player_two_count, name1, name2)
 
 
-def check_same(playerone, playertwo):
-    if playerone == playertwo:
+def check_same(player_one, player_two):
+    if player_one == player_two:
         st.error(f"Please enter two different players", icon="🪞")
         return True  
 
@@ -182,29 +181,31 @@ def reset_inputs():
     st.session_state["player_two_id"] = None
     st.session_state["comparison_done"] = False
 
- 
-
 st.markdown("# NBA COMPARER :basketball:", text_alignment="center")
 st.markdown("##### Compare two NBA players across a season of your choosing.", text_alignment="center")
 
-# get a list of all seasons
-output = playercareerstats.PlayerCareerStats(
-        per_mode36="PerGame",
-        player_id=201939 
-        )
-df = output.season_totals_regular_season.get_data_frame()
-seasons = df["SEASON_ID"].tolist()
+# get a list of seasons
+@st.cache_data
+def get_seasons():
+    output = playercareerstats.PlayerCareerStats(
+            per_mode36="PerGame",
+            player_id=2544 
+            )
+    df = output.season_totals_regular_season.get_data_frame()
+    seasons = df["SEASON_ID"].tolist()
+    return seasons
 
 if "season" not in st.session_state:
     st.session_state["season"] = st.session_state.get("the_season", "")
 # display seasons in dropdown box
 selected_season = st.selectbox(f"Select the desired season:", 
-options=seasons,
+options=get_seasons(),
 index=None,
 key="season",
 placeholder=st.session_state["season"]
 )
 
+# have to store in separate variable due to streamlit erasing key for widgets when on a new page
 st.session_state["the_season"] = selected_season
 
 left, right = st.columns(2)
@@ -213,7 +214,6 @@ with left:
         st.session_state["player_one"] = st.session_state.get("chosen_name", "")
     player_one = st.text_input("Enter player one ", key="player_one").strip()
 
-# this must be done becuase key for the widget resets when on a new page
 st.session_state["chosen_name"] = player_one
 
 with right:

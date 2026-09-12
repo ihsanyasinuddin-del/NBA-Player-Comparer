@@ -23,8 +23,6 @@ def get_basic_info(playerid):
     position = df["POSITION"].iloc[0]
     return height, team, position
 
-# find the previous season to compare change in players stats, e.g convert "2019-20" to "2018-19"
-
 @st.cache_data
 def find_previous_year(current_year):
     one, two = current_year.split("-")
@@ -35,7 +33,6 @@ def find_previous_year(current_year):
 
 @st.cache_data
 def get_stats(player_id,season):
-    # get this year's stats
     output = playercareerstats.PlayerCareerStats(
         per_mode36="PerGame",
         player_id=player_id 
@@ -43,7 +40,7 @@ def get_stats(player_id,season):
     player_data = (output.season_totals_regular_season.get_data_frame())
     season_data = (player_data[player_data["SEASON_ID"] == season])
     if season_data.empty:
-        return None
+        return None, None
     season_row = season_data.iloc[0]
     stats = {
         "Points": season_row["PTS"],
@@ -57,14 +54,12 @@ def get_stats(player_id,season):
         "Turnovers":  season_row["TOV"],
 
     }
-
-    # get last year's stats 
     previous_season = find_previous_year(season)
     previous_output = output
     previous_player_data = (previous_output.season_totals_regular_season.get_data_frame())
     previous_season_data = (previous_player_data[previous_player_data["SEASON_ID"] == previous_season])
     if previous_season_data.empty:
-        return None
+        return None, None
     previous_season_row = previous_season_data.iloc[0]
     previous_stats = {
             "Points": previous_season_row["PTS"],
@@ -184,9 +179,8 @@ def reset_inputs():
 st.markdown("# NBA COMPARER :basketball:", text_alignment="center")
 st.markdown("##### Compare two NBA players across a season of your choosing.", text_alignment="center")
 
-# get a list of seasons
 @st.cache_data
-def get_seasons():
+def get_seasons_list():
     output = playercareerstats.PlayerCareerStats(
             per_mode36="PerGame",
             player_id=2544 
@@ -197,9 +191,8 @@ def get_seasons():
 
 if "season" not in st.session_state:
     st.session_state["season"] = st.session_state.get("the_season", "")
-# display seasons in dropdown box
 selected_season = st.selectbox(f"Select the desired season:", 
-options=get_seasons(),
+options=get_seasons_list(),
 index=None,
 key="season",
 placeholder=st.session_state["season"]

@@ -8,8 +8,8 @@ from nba_api.stats.endpoints import leaguedashplayerstats
 st.set_page_config(layout="wide")
 
 @st.cache_data
-def request_stats(id):
-    career = playercareerstats.PlayerCareerStats(player_id=id, per_mode36="PerGame")
+def request_stats(player_id):
+    career = playercareerstats.PlayerCareerStats(player_id=player_id, per_mode36="PerGame")
     careerdf = career.season_totals_regular_season.get_data_frame()
     return careerdf 
 
@@ -22,8 +22,8 @@ def make_scatter_chart(career, stat1, stat2):
                     "STL" : "Steals", 
                     "BLK": "Rim Protection",
                 }
-    df1 = career[[stat1, stat2, "SEASON_ID", "PLAYER_AGE"]]
-    fig = px.scatter(df1, x=stat1, y=stat2, hover_data=["SEASON_ID"], color="PLAYER_AGE",
+    scatter_df = career[[stat1, stat2, "SEASON_ID", "PLAYER_AGE"]]
+    fig = px.scatter(scatter_df, x=stat1, y=stat2, hover_data=["SEASON_ID"], color="PLAYER_AGE",
                      labels={
                          stat1: names[stat1],
                          stat2: names[stat2],
@@ -44,20 +44,26 @@ def make_line_graph(career1, career2, desired_stat, title):
     st.markdown(f"### {title}" , text_alignment="center" )
     st.line_chart(data=combined_stats_df, x="SEASON_ID", y=[f"{name_one}", f"{name_two}"], x_label="Season", y_label=f"{title}", color=["red", "green"])
 
+@st.cache_data
+def get_league_stats(season):
+    df = leaguedashplayerstats.LeagueDashPlayerStats(
+        season=season,
+        per_mode_detailed="PerGame"
+        ).get_data_frames()[0]
+    return df
+
 if st.session_state.get("the_season"): 
     season = st.session_state["the_season"]
-    df = leaguedashplayerstats.LeagueDashPlayerStats(
-    season=season,
-    per_mode_detailed="PerGame"
-    ).get_data_frames()[0]
+    df = get_league_stats(season)
 
-def find_percentile(id, desired_stat, name):
+
+def find_percentile(player_id, desired_stat, name):
     # want to make sure the dataset only has players who played a minimum number of minutes to avoid outliers and "fluke" performances 
     qualifier = df["GP"] * df["MIN"]
     qualified_df = df[qualifier > 1000]
     length = len(qualified_df)
     n = 0 
-    points1 = qualified_df.query(f"PLAYER_ID == {id}")[f"{desired_stat}"]
+    points1 = qualified_df.query(f"PLAYER_ID == {player_id}")[f"{desired_stat}"]
     if points1.empty:
             st.write(f"{name} has not played enough minutes to be displayed on the radar chart.")
             worked = False
@@ -69,6 +75,8 @@ def find_percentile(id, desired_stat, name):
             n += 1
     percentile = (n / length) * 100
     return percentile
+
+
 
 if st.session_state.get("player_one_id"):
     player_one_id = st.session_state.get("player_one_id")
@@ -84,7 +92,7 @@ if st.session_state.get("player_one_id"):
             make_line_graph(career1, career2, desired_stat="PTS", title="Points Per Game")
             make_line_graph(career1, career2, desired_stat="AST", title="Assists")
             make_line_graph(career1, career2, desired_stat="FG_PCT", title="Field Goal Percentage")
-            make_line_graph(career1, career2, desired_stat="FG3_PCT", title="Three-point percentage")
+            make_line_graph(career1, career2, desired_stat="FG3_PCT", title="Three-point Percentage")
             make_line_graph(career1, career2, desired_stat="REB", title="Rebounds")
         with right:
             points_percentile_one = find_percentile(player_one_id, "PTS", name_one)
